@@ -1,10 +1,16 @@
 {
   "name": "bookstore-api",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "REST API per la gestione inventario di una libreria",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "globalSetup": "./tests/setup.js"
   },
   "keywords": [],
   "author": "",
