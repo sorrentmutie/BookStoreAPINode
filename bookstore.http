@@ -1,0 +1,283 @@
+### BookStore API — esempi di chiamate
+### Compatibile con VS Code REST Client e JetBrains HTTP Client
+
+@baseUrl = http://localhost:3000/api/v1
+@apiKey = dev-key-1234
+
+# ============================================================
+# AUTENTICAZIONE
+# ============================================================
+
+### Richiesta senza API key → 401
+GET {{baseUrl}}/genres
+
+### Richiesta con API key non valida → 401
+GET {{baseUrl}}/genres
+X-API-Key: chiave-sbagliata
+
+# ============================================================
+# GENRES (sola lettura, pre-seeded)
+# ============================================================
+
+### Lista tutti i generi
+GET {{baseUrl}}/genres
+X-API-Key: {{apiKey}}
+
+### Dettaglio genere id=1 (Fiction)
+GET {{baseUrl}}/genres/1
+X-API-Key: {{apiKey}}
+
+### Tentativo di scrittura → 405
+POST {{baseUrl}}/genres
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{ "name": "Nuovo Genere" }
+
+# ============================================================
+# PUBLISHERS
+# ============================================================
+
+### Crea un editore
+# @name createPublisher
+POST {{baseUrl}}/publishers
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Mondadori"
+}
+
+### Lista editori (paginata)
+GET {{baseUrl}}/publishers
+X-API-Key: {{apiKey}}
+
+### Lista editori con ricerca
+GET {{baseUrl}}/publishers?search=mondo
+X-API-Key: {{apiKey}}
+
+### Lista editori pagina 2
+GET {{baseUrl}}/publishers?page=2&limit=5
+X-API-Key: {{apiKey}}
+
+### Dettaglio editore (con book_count)
+GET {{baseUrl}}/publishers/1
+X-API-Key: {{apiKey}}
+
+### Aggiorna nome editore
+PATCH {{baseUrl}}/publishers/1
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Mondadori Libri"
+}
+
+### Elimina editore (senza libri → 204, con libri → 409)
+DELETE {{baseUrl}}/publishers/1
+X-API-Key: {{apiKey}}
+
+### Errore: name mancante → 400
+POST {{baseUrl}}/publishers
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{}
+
+### Errore: nome duplicato → 409
+POST {{baseUrl}}/publishers
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "Mondadori"
+}
+
+# ============================================================
+# AUTHORS
+# ============================================================
+
+### Crea un autore (campi minimi)
+POST {{baseUrl}}/authors
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "first_name": "Umberto",
+  "last_name": "Eco"
+}
+
+### Crea un autore (tutti i campi)
+POST {{baseUrl}}/authors
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "first_name": "Isaac",
+  "last_name": "Asimov",
+  "birth_date": "1920-01-02",
+  "biography": "Autore americano di fantascienza e divulgazione scientifica.",
+  "nationality": "American"
+}
+
+### Lista autori
+GET {{baseUrl}}/authors
+X-API-Key: {{apiKey}}
+
+### Lista autori con ricerca per nome
+GET {{baseUrl}}/authors?search=eco
+X-API-Key: {{apiKey}}
+
+### Dettaglio autore (con lista libri)
+GET {{baseUrl}}/authors/1
+X-API-Key: {{apiKey}}
+
+### Aggiornamento parziale autore
+PATCH {{baseUrl}}/authors/1
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "nationality": "Italian",
+  "biography": "Semiologo, filosofo e romanziere italiano."
+}
+
+### Elimina autore (senza libri → 204)
+DELETE {{baseUrl}}/authors/2
+X-API-Key: {{apiKey}}
+
+### Errore: first_name mancante → 400
+POST {{baseUrl}}/authors
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "last_name": "Eco"
+}
+
+### Errore: autore con libri → 409
+DELETE {{baseUrl}}/authors/1
+X-API-Key: {{apiKey}}
+
+# ============================================================
+# BOOKS
+# ============================================================
+
+### Crea un libro (modello base)
+POST {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Il Nome della Rosa",
+  "isbn": "9780156001311",
+  "author": "Umberto Eco",
+  "price": 12.99,
+  "category": "Fiction"
+}
+
+### Crea un altro libro
+POST {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Foundation",
+  "isbn": "9780553293357",
+  "author": "Isaac Asimov",
+  "price": 9.99,
+  "category": "Sci-Fi"
+}
+
+### Lista libri (default: page=1, limit=20, sort=title asc)
+GET {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+
+### Lista libri ordinati per prezzo crescente
+GET {{baseUrl}}/books?sort=price&order=asc
+X-API-Key: {{apiKey}}
+
+### Lista libri con filtro titolo (case-insensitive, parziale)
+GET {{baseUrl}}/books?title=rosa
+X-API-Key: {{apiKey}}
+
+### Lista libri disponibili (quantity > 0)
+GET {{baseUrl}}/books?available=true
+X-API-Key: {{apiKey}}
+
+### Lista libri con paginazione esplicita
+GET {{baseUrl}}/books?page=1&limit=5
+X-API-Key: {{apiKey}}
+
+### Dettaglio libro (eager loading: publisher, authors, genres)
+GET {{baseUrl}}/books/1
+X-API-Key: {{apiKey}}
+
+### Aggiornamento parziale libro
+PATCH {{baseUrl}}/books/1
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "price": 14.50,
+  "title": "Il Nome della Rosa (Edizione speciale)"
+}
+
+### Elimina libro → 204
+DELETE {{baseUrl}}/books/1
+X-API-Key: {{apiKey}}
+
+### Errore: ISBN duplicato → 409
+POST {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Altro libro stesso ISBN",
+  "isbn": "9780156001311",
+  "author": "Chiunque",
+  "price": 5.00,
+  "category": "Fiction"
+}
+
+### Errore: ISBN non valido → 400
+POST {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Libro test",
+  "isbn": "ISBN-NON-VALIDO",
+  "author": "Autore",
+  "price": 9.99,
+  "category": "Fiction"
+}
+
+### Errore: prezzo negativo → 400
+POST {{baseUrl}}/books
+X-API-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "title": "Libro test",
+  "isbn": "9780553293364",
+  "author": "Autore",
+  "price": -1,
+  "category": "Fiction"
+}
+
+### Errore: id non numerico → 400
+GET {{baseUrl}}/books/abc
+X-API-Key: {{apiKey}}
+
+### Errore: libro non trovato → 404
+GET {{baseUrl}}/books/99999
+X-API-Key: {{apiKey}}
+
+### Errore: sort non valido → 400
+GET {{baseUrl}}/books?sort=colonna_inesistente
+X-API-Key: {{apiKey}}
+
+### Errore: limit > 100 → 400
+GET {{baseUrl}}/books?limit=500
+X-API-Key: {{apiKey}}
