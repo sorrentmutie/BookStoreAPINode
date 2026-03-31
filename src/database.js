@@ -43,11 +43,13 @@ db.exec(`
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     title             TEXT    NOT NULL,
     isbn              TEXT    NOT NULL UNIQUE,
-    price             REAL    NOT NULL CHECK (price >= 0),
+    price             REAL    NOT NULL CHECK (price > 0),
     quantity          INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-    publication_year  INTEGER NOT NULL,
+    publication_year  INTEGER,
     description       TEXT,
-    publisher_id      INTEGER NOT NULL REFERENCES publishers(id),
+    publisher_id      INTEGER REFERENCES publishers(id),
+    author            TEXT,
+    category          TEXT,
     created_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     updated_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
   );
@@ -98,5 +100,6 @@ const seedApiKeys = db.transaction(() => {
 
 seedGenres();
 seedApiKeys();
+
 
 module.exports = db;

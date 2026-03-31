@@ -23,7 +23,7 @@ function create(req, res, next) {
     return next(e);
   }
 
-  res.status(201).json({ data: addLowStock(book) });
+  res.status(201).location(`/api/v1/books/${book.id}`).json({ data: addLowStock(book) });
 }
 
 function list(req, res, next) {

@@ -2,45 +2,41 @@
 
 const Joi = require('joi');
 
-// Validazione ISBN-10 con check digit
-// L'ultimo carattere può essere 'X' (vale 10)
-function isValidIsbn10(isbn) {
-  if (!/^\d{9}[\dX]$/.test(isbn)) return false;
-  let sum = 0;
-  for (let i = 0; i < 9; i++) sum += parseInt(isbn[i]) * (10 - i);
-  const last = isbn[9] === 'X' ? 10 : parseInt(isbn[9]);
-  sum += last;
-  return sum % 11 === 0;
+// Categorie valide per il modello semplificato
+const VALID_CATEGORIES = [
+  'Fiction', 'Non-Fiction', 'Sci-Fi', 'Fantasy', 'Romance',
+  'Thriller', 'Horror', 'Biography', 'History', 'Science', 'Children',
+];
+
+/**
+ * Validazione ISBN-13: dopo aver rimosso i trattini deve risultare
+ * esattamente 13 cifre numeriche.
+ */
+function isValidIsbn13(value) {
+  const digits = value.replace(/-/g, '');
+  return /^\d{13}$/.test(digits);
 }
 
 const createBookSchema = Joi.object({
-  title:            Joi.string().min(1).required(),
-  isbn:             Joi.string().custom((value, helpers) => {
-    if (!isValidIsbn10(value)) return helpers.error('any.invalid');
+  title:    Joi.string().max(200).required(),
+  isbn:     Joi.string().custom((value, helpers) => {
+    if (!isValidIsbn13(value)) return helpers.error('any.invalid');
     return value;
-  }).required().messages({ 'any.invalid': 'isbn must be a valid ISBN-10 with correct check digit' }),
-  price:            Joi.number().min(0).required(),
-  quantity:         Joi.number().integer().min(0).required(),
-  publication_year: Joi.number().integer().required(),
-  description:      Joi.string().allow('', null).optional(),
-  publisher_id:     Joi.number().integer().positive().required(),
-  author_ids:       Joi.array().items(Joi.number().integer().positive()).min(1).required(),
-  genre_ids:        Joi.array().items(Joi.number().integer().positive()).min(1).required()
+  }).required().messages({ 'any.invalid': 'isbn must be a valid ISBN-13 (13 digits, hyphens allowed)' }),
+  author:   Joi.string().required(),
+  price:    Joi.number().greater(0).required(),
+  category: Joi.string().valid(...VALID_CATEGORIES).required(),
 });
 
 const updateBookSchema = Joi.object({
-  title:            Joi.string().min(1),
-  isbn:             Joi.string().custom((value, helpers) => {
-    if (!isValidIsbn10(value)) return helpers.error('any.invalid');
+  title:    Joi.string().max(200),
+  isbn:     Joi.string().custom((value, helpers) => {
+    if (!isValidIsbn13(value)) return helpers.error('any.invalid');
     return value;
-  }).messages({ 'any.invalid': 'isbn must be a valid ISBN-10 with correct check digit' }),
-  price:            Joi.number().min(0),
-  quantity:         Joi.number().integer().min(0),
-  publication_year: Joi.number().integer(),
-  description:      Joi.string().allow('', null),
-  publisher_id:     Joi.number().integer().positive(),
-  author_ids:       Joi.array().items(Joi.number().integer().positive()).min(1),
-  genre_ids:        Joi.array().items(Joi.number().integer().positive()).min(1)
+  }).messages({ 'any.invalid': 'isbn must be a valid ISBN-13 (13 digits, hyphens allowed)' }),
+  author:   Joi.string(),
+  price:    Joi.number().greater(0),
+  category: Joi.string().valid(...VALID_CATEGORIES),
 }).options({ stripUnknown: true });
 
 const listBooksQuerySchema = Joi.object({

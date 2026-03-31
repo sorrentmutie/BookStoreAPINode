@@ -24,8 +24,10 @@ function findById(id) {
   const book = db.prepare('SELECT * FROM books WHERE id = ?').get(id);
   if (!book) return null;
 
-  // Publisher
-  const publisher = db.prepare('SELECT * FROM publishers WHERE id = ?').get(book.publisher_id);
+  // Publisher (può essere null per libri creati col modello semplificato)
+  const publisher = book.publisher_id != null
+    ? db.prepare('SELECT * FROM publishers WHERE id = ?').get(book.publisher_id)
+    : null;
 
   // Authors
   const authors = db.prepare(`
@@ -151,71 +153,28 @@ function list(filters = {}) {
 // ---------------------------------------------------------------------------
 
 /**
- * Crea un nuovo libro con le sue relazioni autori/generi in una transazione.
- * @param {object} data - { title, isbn, price, quantity, publication_year, description, publisher_id, author_ids, genre_ids }
- * @returns {object} - libro creato con eager loading
+ * Crea un nuovo libro (modello semplificato).
+ * @param {object} data - { title, isbn, author, price, category }
+ * @returns {object} - libro creato
  */
 function create(data) {
-  const {
-    title, isbn, price, quantity, publication_year,
-    description, publisher_id, author_ids, genre_ids,
-  } = data;
+  const { title, isbn, author, price, category } = data;
 
-  const doCreate = db.transaction(() => {
-    // Verifica publisher_id
-    const pub = db.prepare('SELECT id FROM publishers WHERE id = ?').get(publisher_id);
-    if (!pub) {
-      throw { code: 'VALIDATION_ERROR', status: 400, message: 'Validation failed', details: [{ field: 'publisher_id', message: 'Publisher not found' }] };
+  let newId;
+  try {
+    const result = db.prepare(`
+      INSERT INTO books (title, isbn, author, price, category)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(title, isbn, author, price, category);
+    newId = result.lastInsertRowid;
+  } catch (err) {
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      throw { code: 'DUPLICATE_ISBN', status: 409, message: 'A book with this ISBN already exists' };
     }
+    throw err;
+  }
 
-    // Verifica author_ids
-    if (author_ids && author_ids.length > 0) {
-      const placeholders = author_ids.map(() => '?').join(', ');
-      const found = db.prepare(`SELECT id FROM authors WHERE id IN (${placeholders})`).all(...author_ids);
-      if (found.length !== author_ids.length) {
-        throw { code: 'VALIDATION_ERROR', status: 400, message: 'Validation failed', details: [{ field: 'author_ids', message: 'One or more authors not found' }] };
-      }
-    }
-
-    // Verifica genre_ids
-    if (genre_ids && genre_ids.length > 0) {
-      const placeholders = genre_ids.map(() => '?').join(', ');
-      const found = db.prepare(`SELECT id FROM genres WHERE id IN (${placeholders})`).all(...genre_ids);
-      if (found.length !== genre_ids.length) {
-        throw { code: 'VALIDATION_ERROR', status: 400, message: 'Validation failed', details: [{ field: 'genre_ids', message: 'One or more genres not found' }] };
-      }
-    }
-
-    let newId;
-    try {
-      const result = db.prepare(`
-        INSERT INTO books (title, isbn, price, quantity, publication_year, description, publisher_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(title, isbn, price, quantity, publication_year, description ?? null, publisher_id);
-      newId = result.lastInsertRowid;
-    } catch (err) {
-      if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-        throw { code: 'DUPLICATE_ISBN', status: 409, message: 'A book with this ISBN already exists' };
-      }
-      throw err;
-    }
-
-    // Relazioni autori
-    const insertAuthor = db.prepare('INSERT INTO book_authors (book_id, author_id) VALUES (?, ?)');
-    for (const aid of (author_ids || [])) {
-      insertAuthor.run(newId, aid);
-    }
-
-    // Relazioni generi
-    const insertGenre = db.prepare('INSERT INTO book_genres (book_id, genre_id) VALUES (?, ?)');
-    for (const gid of (genre_ids || [])) {
-      insertGenre.run(newId, gid);
-    }
-
-    return findById(newId);
-  });
-
-  return doCreate();
+  return findById(newId);
 }
 
 // ---------------------------------------------------------------------------
