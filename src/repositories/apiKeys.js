@@ -8,7 +8,7 @@ const db = require('../database');
  * @returns {{ id: number, key: string, client_name: string }|null}
  */
 function findByKey(key) {
-  // TODO
+  return db.prepare('SELECT * FROM api_keys WHERE key = ?').get(key) ?? null;
 }
 
 module.exports = { findByKey };
