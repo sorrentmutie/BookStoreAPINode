@@ -48,6 +48,7 @@ const listBooksQuerySchema = Joi.object({
   author_id:    Joi.number().integer().positive(),
   genre_id:     Joi.number().integer().positive(),
   publisher_id: Joi.number().integer().positive(),
+  available:    Joi.boolean(),
   page:         Joi.number().integer().min(1).default(1),
   limit:        Joi.number().integer().min(1).max(100).default(20),
   sort:         Joi.string().valid('title', 'price', 'publication_year').default('title'),
